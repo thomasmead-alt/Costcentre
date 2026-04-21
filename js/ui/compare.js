@@ -28,22 +28,24 @@ export function renderCompare(containerIds, wb, { reviewedCodes, filter = 'all' 
 
 function renderSummary(changes) {
   const el = document.getElementById('diff-summary');
-  const counts = {
-    newNode: changes.nodeChanges.filter((c) => c.kind === 'new-node').length,
-    changedNode: changes.nodeChanges.filter((c) => c.kind === 'changed-node').length,
-    removedNode: changes.nodeChanges.filter((c) => c.kind === 'removed-node').length,
-    newCC: changes.ccChanges.filter((c) => c.kind === 'new-cc').length,
-    changedCC: changes.ccChanges.filter((c) => c.kind === 'changed-cc').length,
-    removedCC: changes.ccChanges.filter((c) => c.kind === 'removed-cc').length
+  const c = {
+    newNode: changes.nodeChanges.filter((x) => x.kind === 'new-node').length,
+    changedNode: changes.nodeChanges.filter((x) => x.kind === 'changed-node').length,
+    removedNode: changes.nodeChanges.filter((x) => x.kind === 'removed-node').length,
+    newCC: changes.ccChanges.filter((x) => x.kind === 'new-cc').length,
+    changedCC: changes.ccChanges.filter((x) => x.kind === 'changed-cc').length,
+    removedCC: changes.ccChanges.filter((x) => x.kind === 'removed-cc').length
   };
+  const totalNodes = c.newNode + c.changedNode + c.removedNode;
+  const totalCcs = c.newCC + c.changedCC + c.removedCC;
   el.innerHTML = `
-    <span class="chip new">+${counts.newNode} nodes</span>
-    <span class="chip changed">~${counts.changedNode} nodes</span>
-    <span class="chip removed">-${counts.removedNode} nodes</span>
-    <span class="chip new">+${counts.newCC} CCs</span>
-    <span class="chip changed">~${counts.changedCC} CCs</span>
-    <span class="chip removed">-${counts.removedCC} CCs</span>
-  `;
+    <div class="diff-stat tone-ok"><div class="v">+${c.newNode}</div><div class="l">New nodes</div></div>
+    <div class="diff-stat tone-warn"><div class="v">~${c.changedNode}</div><div class="l">Changed nodes</div></div>
+    <div class="diff-stat tone-danger"><div class="v">−${c.removedNode}</div><div class="l">Removed nodes</div></div>
+    <div class="diff-stat tone-ok"><div class="v">+${c.newCC}</div><div class="l">New cost centres</div></div>
+    <div class="diff-stat tone-warn"><div class="v">~${c.changedCC}</div><div class="l">Changed cost centres</div></div>
+    <div class="diff-stat tone-danger"><div class="v">−${c.removedCC}</div><div class="l">Removed cost centres</div></div>
+    <div class="diff-stat tone-accent"><div class="v">${totalNodes + totalCcs}</div><div class="l">Total differences</div></div>`;
 }
 
 function renderList(listId, changes, filter) {

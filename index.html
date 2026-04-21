@@ -21,7 +21,8 @@
   </header>
 
   <nav class="tabs" role="tablist">
-    <button class="tab active" data-tab="import" role="tab">Import</button>
+    <button class="tab active" data-tab="dashboard" role="tab">Dashboard</button>
+    <button class="tab" data-tab="import" role="tab">Import</button>
     <button class="tab" data-tab="current" role="tab">Current hierarchy</button>
     <button class="tab" data-tab="proposed" role="tab">Proposed hierarchy</button>
     <button class="tab" data-tab="compare" role="tab">Compare</button>
@@ -30,7 +31,32 @@
   </nav>
 
   <main>
-    <section class="panel active" data-panel="import">
+    <section class="panel active" data-panel="dashboard">
+      <h2>Dashboard</h2>
+      <div id="dashboard-empty" class="empty-state" hidden>Load KS13 and a proposed hierarchy to see progress at a glance. Use the Import tab, or try <button type="button" id="btn-dash-load-samples" class="link-button">sample data</button>.</div>
+      <div id="stat-grid" class="stat-grid"></div>
+      <div class="dash-row">
+        <div class="card dash-card">
+          <h3>KS13 placement coverage</h3>
+          <div id="coverage-bar"></div>
+          <div id="coverage-legend" class="coverage-legend"></div>
+        </div>
+        <div class="card dash-card">
+          <h3>Change log by status</h3>
+          <div id="status-bars"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Profit centre coverage</h3>
+        <div id="pc-breakdown" class="pc-breakdown"></div>
+      </div>
+      <div class="card">
+        <h3>Recent activity</h3>
+        <div id="recent-activity" class="recent-activity"></div>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="import">
       <h2>Import data</h2>
 
       <div class="card" id="sample-card">
@@ -53,22 +79,23 @@
 
       <div class="card">
         <h3>Current hierarchy</h3>
-        <p class="hint">Import a JSON file describing the existing management cost centre hierarchy.</p>
+        <p class="hint">Import a CSV or JSON file describing the existing management cost centre hierarchy. <a href="#" id="link-csv-format">CSV format help</a></p>
         <label class="file-button">
-          Choose current hierarchy JSON
-          <input type="file" id="file-current" accept="application/json" hidden />
+          Choose current hierarchy file
+          <input type="file" id="file-current" accept=".csv,.json,application/json,text/csv" hidden />
         </label>
         <div id="current-summary" class="summary"></div>
       </div>
 
       <div class="card">
         <h3>Proposed hierarchy (draft)</h3>
-        <p class="hint">Import a proposal JSON to seed the editable proposed tree. You can refine it in the Proposed tab.</p>
+        <p class="hint">Import a proposal CSV or JSON to seed the editable proposed tree. You can refine it in the Proposed tab.</p>
         <label class="file-button">
-          Choose proposed hierarchy JSON
-          <input type="file" id="file-proposed" accept="application/json" hidden />
+          Choose proposed hierarchy file
+          <input type="file" id="file-proposed" accept=".csv,.json,application/json,text/csv" hidden />
         </label>
         <button id="btn-copy-current" type="button">Seed from current</button>
+        <button id="btn-download-template" type="button">Download CSV template</button>
         <div id="proposed-summary" class="summary"></div>
       </div>
     </section>
@@ -76,6 +103,10 @@
     <section class="panel" data-panel="current">
       <h2>Current hierarchy</h2>
       <p class="hint">Read-only view. Import a new current hierarchy from the Import tab to replace it.</p>
+      <div class="toolbar">
+        <button type="button" data-expand-target="current-tree">Expand all</button>
+        <button type="button" data-collapse-target="current-tree">Collapse all</button>
+      </div>
       <div id="current-tree" class="tree"></div>
     </section>
 
@@ -84,6 +115,8 @@
       <p class="hint">Click a node to add/rename/move/remove. New changes are logged automatically.</p>
       <div class="toolbar">
         <button id="btn-add-root-manager" type="button">Add top-level manager</button>
+        <button type="button" data-expand-target="proposed-tree">Expand all</button>
+        <button type="button" data-collapse-target="proposed-tree">Collapse all</button>
       </div>
       <div id="proposed-tree" class="tree editable"></div>
     </section>
@@ -94,6 +127,9 @@
         <label><input type="radio" name="diff-filter" value="all" checked /> All</label>
         <label><input type="radio" name="diff-filter" value="nodes" /> Nodes only</label>
         <label><input type="radio" name="diff-filter" value="ccs" /> Cost centres only</label>
+        <span style="flex:1"></span>
+        <button type="button" data-expand-target="compare-current,compare-proposed">Expand all</button>
+        <button type="button" data-collapse-target="compare-current,compare-proposed">Collapse all</button>
       </div>
       <div class="diff-summary" id="diff-summary"></div>
       <div class="diff-grid">

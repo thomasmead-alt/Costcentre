@@ -19,62 +19,94 @@ export function renderOrphans(containerId, { onChange } = {}) {
     root.appendChild(empty);
     return;
   }
-  const header = document.createElement('div');
-  header.className = 'orphan-item';
-  header.style.fontWeight = '600';
-  header.style.background = '#f6f8fa';
-  header.innerHTML = `
-    <span>Cost centre</span>
-    <span>CC name / PC</span>
-    <span>Responsible person</span>
-    <span>Suggested parent</span>
-    <span></span>`;
-  root.appendChild(header);
 
+  const pcTotals = new Map();
+  for (const row of wb.ks13) {
+    const pc = row.profitCentre || '(none)';
+    if (!pcTotals.has(pc)) pcTotals.set(pc, { total: 0, unassigned: 0, name: row.profitCentreName || '' });
+    pcTotals.get(pc).total++;
+  }
   for (const o of orphans) {
-    const row = document.createElement('div');
-    row.className = 'orphan-item';
-    const reviewed = isReviewed(wb.reviewRegistry, o.costCentre);
-    if (reviewed) row.classList.add('reviewed');
+    const pc = o.profitCentre || '(none)';
+    if (pcTotals.has(pc)) pcTotals.get(pc).unassigned++;
+  }
 
-    const cc = document.createElement('span');
-    cc.innerHTML = `<strong>${escapeHtml(o.costCentre)}</strong>`;
-    row.appendChild(cc);
+  const grouped = new Map();
+  for (const o of orphans) {
+    const pc = o.profitCentre || '(none)';
+    if (!grouped.has(pc)) grouped.set(pc, []);
+    grouped.get(pc).push(o);
+  }
 
-    const name = document.createElement('span');
-    name.innerHTML = `${escapeHtml(o.costCentreName || '')}<br><small>PC ${escapeHtml(o.profitCentre || '—')} ${escapeHtml(o.profitCentreName || '')}</small>`;
-    row.appendChild(name);
+  const pcs = [...grouped.keys()].sort();
+  const summary = document.createElement('div');
+  summary.className = 'orphan-summary';
+  const totalUnassigned = orphans.length;
+  summary.innerHTML = `<div class="diff-stat tone-warn"><div class="v">${totalUnassigned}</div><div class="l">Unassigned</div></div>
+    <div class="diff-stat tone-accent"><div class="v">${pcs.length}</div><div class="l">Profit centres affected</div></div>`;
+  root.appendChild(summary);
 
-    const person = document.createElement('span');
-    person.innerHTML = `${escapeHtml(o.responsiblePerson || '')}<br><small>${escapeHtml(o.responsiblePersonId || '')}</small>`;
-    row.appendChild(person);
+  for (const pc of pcs) {
+    const items = grouped.get(pc);
+    const totals = pcTotals.get(pc) || { total: items.length, unassigned: items.length, name: '' };
+    const pctAssigned = totals.total ? Math.round(((totals.total - totals.unassigned) / totals.total) * 100) : 0;
 
-    const parent = document.createElement('span');
-    const parentNode = findById(wb.proposedTree, o.suggestedParentId);
-    parent.textContent = parentNode ? pathTo(wb.proposedTree, parentNode.id).map((p) => p.label || p.id).join(' / ') : '—';
-    row.appendChild(parent);
+    const group = document.createElement('div');
+    group.className = 'orphan-group';
+    const header = document.createElement('div');
+    header.className = 'orphan-group-header';
+    header.innerHTML = `
+      <div><strong>PC ${escapeHtml(pc)}</strong> <small>${escapeHtml(totals.name || '')}</small></div>
+      <div class="pc-track small"><div class="pc-fill ${pctAssigned === 100 ? 'seg-ok' : pctAssigned >= 50 ? 'seg-warn' : 'seg-danger'}" style="width:${pctAssigned}%"></div></div>
+      <div><small>${totals.total - totals.unassigned}/${totals.total} placed · ${items.length} to assign</small></div>`;
+    group.appendChild(header);
 
-    const actions = document.createElement('span');
-    if (reviewed) {
-      const link = document.createElement('button');
-      link.type = 'button';
-      link.textContent = 'Open log entry';
-      link.addEventListener('click', () => {
-        const eventBus = window;
-        const id = entryFor(wb.reviewRegistry, o.costCentre);
-        eventBus.dispatchEvent(new CustomEvent('log:open', { detail: { id } }));
-      });
-      actions.appendChild(link);
-    } else {
-      const assign = document.createElement('button');
-      assign.type = 'button';
-      assign.className = 'primary';
-      assign.textContent = 'Assign';
-      assign.addEventListener('click', () => assignOrphan(o, onChange));
-      actions.appendChild(assign);
+    for (const o of items) {
+      const row = document.createElement('div');
+      row.className = 'orphan-item';
+      const reviewed = isReviewed(wb.reviewRegistry, o.costCentre);
+      if (reviewed) row.classList.add('reviewed');
+
+      const cc = document.createElement('span');
+      cc.innerHTML = `<strong>${escapeHtml(o.costCentre)}</strong>`;
+      row.appendChild(cc);
+
+      const name = document.createElement('span');
+      name.innerHTML = `${escapeHtml(o.costCentreName || '')}`;
+      row.appendChild(name);
+
+      const person = document.createElement('span');
+      person.innerHTML = `${escapeHtml(o.responsiblePerson || '')}<br><small>${escapeHtml(o.responsiblePersonId || '')}</small>`;
+      row.appendChild(person);
+
+      const parent = document.createElement('span');
+      const parentNode = findById(wb.proposedTree, o.suggestedParentId);
+      parent.innerHTML = `<small>${escapeHtml(parentNode ? pathTo(wb.proposedTree, parentNode.id).map((p) => p.label || p.id).join(' / ') : '—')}</small>`;
+      row.appendChild(parent);
+
+      const actions = document.createElement('span');
+      if (reviewed) {
+        const link = document.createElement('button');
+        link.type = 'button';
+        link.textContent = 'Open log entry';
+        link.addEventListener('click', () => {
+          const id = entryFor(wb.reviewRegistry, o.costCentre);
+          window.dispatchEvent(new CustomEvent('log:open', { detail: { id } }));
+        });
+        actions.appendChild(link);
+      } else {
+        const assign = document.createElement('button');
+        assign.type = 'button';
+        assign.className = 'primary';
+        assign.textContent = 'Assign';
+        assign.addEventListener('click', () => assignOrphan(o, onChange));
+        actions.appendChild(assign);
+      }
+      row.appendChild(actions);
+      group.appendChild(row);
     }
-    row.appendChild(actions);
-    root.appendChild(row);
+
+    root.appendChild(group);
   }
 }
 

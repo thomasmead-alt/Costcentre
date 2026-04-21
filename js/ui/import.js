@@ -1,8 +1,28 @@
 import { parseKS13, autoMap, ks13Fields } from '../ks13.js';
 import { deserialize, summarise, cloneTree } from '../hierarchy.js';
+import { parseHierarchyCsv } from '../hierarchyCsv.js';
 import { updateWorkbook, getWorkbook } from '../storage.js';
 import { toast } from './toast.js';
+import { toCSV } from '../csv.js';
 import { SAMPLE_KS13_CSV, SAMPLE_CURRENT_HIERARCHY, SAMPLE_PROPOSED_HIERARCHY } from '../samples.js';
+
+const CSV_TEMPLATE = [
+  ['Level 1', 'Level 2', 'Responsible Person', 'Person ID', 'Cost Centre', 'Cost Centre Name', 'Profit Centre'],
+  ['COO', '', 'Smith, J', 'U001', '1001', 'Marketing UK', 'PC01'],
+  ['COO', '', 'Smith, J', 'U001', '1003', 'Sales UK', 'PC01'],
+  ['COO', '', 'Jones, A', 'U002', '1002', 'Marketing US', 'PC02'],
+  ['CTO', '', 'Brown, K', 'U003', '2001', 'Engineering Core', 'PC03'],
+  ['', '', 'White, L', 'U004', '3001', 'HR', 'PC04']
+];
+
+async function readHierarchyFile(file) {
+  const text = await file.text();
+  const name = (file.name || '').toLowerCase();
+  if (name.endsWith('.csv') || /^(\s*\w[\w ]*),/m.test(text) && !text.trim().startsWith('{')) {
+    return parseHierarchyCsv(text);
+  }
+  return deserialize(JSON.parse(text));
+}
 
 export function initImportPanel({ onChange }) {
   const ks13Input = document.getElementById('file-ks13');
@@ -65,8 +85,7 @@ export function initImportPanel({ onChange }) {
     const file = e.target.files[0];
     if (!file) return;
     try {
-      const text = await file.text();
-      const tree = deserialize(JSON.parse(text));
+      const tree = await readHierarchyFile(file);
       updateWorkbook((wb) => { wb.currentTree = tree; });
       renderTreeSummary('current-summary', tree);
       toast('Current hierarchy imported', 'ok');
@@ -82,8 +101,7 @@ export function initImportPanel({ onChange }) {
     const file = e.target.files[0];
     if (!file) return;
     try {
-      const text = await file.text();
-      const tree = deserialize(JSON.parse(text));
+      const tree = await readHierarchyFile(file);
       updateWorkbook((wb) => { wb.proposedTree = tree; });
       renderTreeSummary('proposed-summary', tree);
       toast('Proposed hierarchy imported', 'ok');
@@ -104,7 +122,61 @@ export function initImportPanel({ onChange }) {
     onChange && onChange();
   });
 
+  const tmplBtn = document.getElementById('btn-download-template');
+  if (tmplBtn) {
+    tmplBtn.addEventListener('click', () => {
+      const csv = toCSV(CSV_TEMPLATE);
+      downloadBlob(csv, 'text/csv', 'hierarchy-template.csv');
+      toast('CSV template downloaded', 'ok');
+    });
+  }
+
+  const helpLink = document.getElementById('link-csv-format');
+  if (helpLink) helpLink.addEventListener('click', (e) => { e.preventDefault(); showCsvHelp(); });
+
   refreshSummaries();
+}
+
+function downloadBlob(content, type, filename) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function showCsvHelp() {
+  const existing = document.getElementById('csv-help-overlay');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'csv-help-overlay';
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <header><h3>Hierarchy CSV format</h3><button type="button" class="close" aria-label="Close">&times;</button></header>
+      <div class="modal-body">
+        <p>One row per path from the top-level down to either a manager, a responsible person, or a cost centre. Rows that share a prefix share nodes.</p>
+        <p><strong>Columns</strong> (case-insensitive, all optional — include what you need):</p>
+        <ul>
+          <li><code>Level 1</code>, <code>Level 2</code>, … — manager-of-manager chain, top to bottom (aliases: <code>L1</code>, <code>Manager L1</code>, <code>Tier 1</code>).</li>
+          <li><code>Responsible Person</code>, <code>Person ID</code> — attached under the deepest non-empty level.</li>
+          <li><code>Cost Centre</code>, <code>Cost Centre Name</code>, <code>Profit Centre</code> — attached under the person (or the deepest level if no person).</li>
+        </ul>
+        <p><strong>Example</strong>:</p>
+        <pre>Level 1,Level 2,Responsible Person,Person ID,Cost Centre,Cost Centre Name,Profit Centre
+Organisation,COO,"Smith, J",U001,1001,Marketing UK,PC01
+Organisation,COO,"Smith, J",U001,1003,Sales UK,PC01
+Organisation,CTO,"Brown, K",U003,2001,Engineering Core,PC03</pre>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.querySelector('.close').addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
 }
 
 export function refreshSummaries() {

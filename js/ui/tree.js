@@ -1,5 +1,44 @@
 import { walk, pathTo } from '../hierarchy.js';
 
+const collapsedState = new Map();
+
+function stateKey(containerId, nodeId) {
+  return `${containerId}::${nodeId}`;
+}
+
+function isCollapsed(containerId, nodeId) {
+  return collapsedState.has(stateKey(containerId, nodeId));
+}
+
+function toggleCollapsed(containerId, nodeId) {
+  const k = stateKey(containerId, nodeId);
+  if (collapsedState.has(k)) collapsedState.delete(k);
+  else collapsedState.set(k, true);
+}
+
+export function expandAll(containerId) {
+  for (const k of [...collapsedState.keys()]) {
+    if (k.startsWith(`${containerId}::`)) collapsedState.delete(k);
+  }
+}
+
+export function collapseAll(containerId, tree) {
+  walk(tree, (n) => {
+    if (n.children && n.children.length > 0) collapsedState.set(stateKey(containerId, n.id), true);
+  });
+}
+
+function countSubtree(node) {
+  let managers = 0, persons = 0, costCentres = 0;
+  walk(node, (n) => {
+    if (n === node) return;
+    if (n.type === 'manager') managers++;
+    else if (n.type === 'person') persons++;
+    else if (n.type === 'costcentre') costCentres++;
+  });
+  return { managers, persons, costCentres };
+}
+
 export function renderTree(container, tree, opts = {}) {
   container.innerHTML = '';
   if (!tree) {
@@ -9,20 +48,42 @@ export function renderTree(container, tree, opts = {}) {
     container.appendChild(empty);
     return;
   }
+  const context = { containerId: container.id, opts };
   const ul = document.createElement('ul');
-  ul.appendChild(renderNode(tree, opts, 0));
+  ul.appendChild(renderNode(tree, context, 0));
   container.appendChild(ul);
 }
 
-function renderNode(node, opts, depth) {
+function renderNode(node, ctx, depth) {
+  const { opts, containerId } = ctx;
   const li = document.createElement('li');
   const head = document.createElement('div');
   head.className = 'node';
   head.dataset.nodeId = node.id;
 
+  const hasChildren = node.children && node.children.length > 0;
+  const collapsed = hasChildren && isCollapsed(containerId, node.id);
+
+  const chevron = document.createElement('span');
+  chevron.className = 'chevron';
+  if (hasChildren) {
+    chevron.textContent = collapsed ? '▸' : '▾';
+    chevron.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleCollapsed(containerId, node.id);
+      if (opts.onToggle) opts.onToggle();
+      const newLi = renderNode(node, ctx, depth);
+      li.replaceWith(newLi);
+    });
+  } else {
+    chevron.textContent = '·';
+    chevron.classList.add('leaf');
+  }
+  head.appendChild(chevron);
+
   const typeSpan = document.createElement('span');
   typeSpan.className = `type ${node.type}`;
-  typeSpan.textContent = node.type === 'costcentre' ? 'CC' : node.type;
+  typeSpan.textContent = node.type === 'costcentre' ? 'CC' : node.type === 'manager' ? 'mgr' : 'person';
   head.appendChild(typeSpan);
 
   const label = document.createElement('span');
@@ -30,11 +91,26 @@ function renderNode(node, opts, depth) {
   label.textContent = formatLabel(node);
   head.appendChild(label);
 
+  if (hasChildren) {
+    const counts = countSubtree(node);
+    const parts = [];
+    if (counts.managers) parts.push(`${counts.managers}m`);
+    if (counts.persons) parts.push(`${counts.persons}p`);
+    if (counts.costCentres) parts.push(`${counts.costCentres}cc`);
+    if (parts.length > 0) {
+      const badge = document.createElement('span');
+      badge.className = 'count-badge';
+      badge.title = `${counts.managers} managers · ${counts.persons} persons · ${counts.costCentres} cost centres in this subtree`;
+      badge.textContent = parts.join(' ');
+      head.appendChild(badge);
+    }
+  }
+
   if (node.type === 'costcentre' && opts.reviewedCodes && opts.reviewedCodes.has(node.costCentreCode)) {
     const mark = document.createElement('span');
     mark.className = 'reviewed';
     mark.title = 'Already reviewed';
-    mark.textContent = '✓ reviewed';
+    mark.textContent = '✓';
     head.appendChild(mark);
   }
 
@@ -60,16 +136,16 @@ function renderNode(node, opts, depth) {
   if (opts.onSelect) {
     head.classList.add('selectable');
     head.addEventListener('click', (e) => {
-      if (e.target.closest('.node-actions')) return;
+      if (e.target.closest('.node-actions') || e.target.classList.contains('chevron')) return;
       opts.onSelect(node);
     });
   }
 
   li.appendChild(head);
 
-  if (node.children && node.children.length > 0) {
+  if (hasChildren && !collapsed) {
     const ul = document.createElement('ul');
-    node.children.forEach((c) => ul.appendChild(renderNode(c, opts, depth + 1)));
+    node.children.forEach((c) => ul.appendChild(renderNode(c, ctx, depth + 1)));
     li.appendChild(ul);
   }
   return li;

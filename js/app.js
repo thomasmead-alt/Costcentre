@@ -1,8 +1,9 @@
 import { loadWorkbook, getWorkbook, updateWorkbook, exportJSON, importJSON, resetWorkbook, subscribe } from './storage.js';
-import { renderTree, pickParent } from './ui/tree.js';
+import { renderTree, pickParent, expandAll, collapseAll } from './ui/tree.js';
 import { initImportPanel, refreshSummaries } from './ui/import.js';
 import { renderCompare } from './ui/compare.js';
 import { renderOrphans } from './ui/orphans.js';
+import { renderDashboard } from './ui/dashboard.js';
 import { initChangelogPanel, render as renderLog } from './ui/changelog.js';
 import { toast } from './ui/toast.js';
 import { createNode, addChild, removeNode, moveNode, renameNode, ensureRoot, findById } from './hierarchy.js';
@@ -20,6 +21,8 @@ function main() {
   initChangelogPanel({ onChange: rerenderAll });
   wireProposedToolbar();
   wireCompareFilter();
+  wireDashboardShortcut();
+  wireTreeExpanders();
   subscribe(() => {
     refreshUser();
   });
@@ -91,6 +94,39 @@ function wireProposedToolbar() {
   });
 }
 
+function wireTreeExpanders() {
+  const treeFor = (id) => {
+    const wb = getWorkbook();
+    if (id === 'proposed-tree' || id === 'compare-proposed') return wb.proposedTree;
+    if (id === 'current-tree' || id === 'compare-current') return wb.currentTree;
+    return null;
+  };
+  document.querySelectorAll('[data-expand-target]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      btn.dataset.expandTarget.split(',').forEach((id) => expandAll(id.trim()));
+      renderActivePanel();
+    });
+  });
+  document.querySelectorAll('[data-collapse-target]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      btn.dataset.collapseTarget.split(',').forEach((id) => {
+        const tree = treeFor(id.trim());
+        if (tree) collapseAll(id.trim(), tree);
+      });
+      renderActivePanel();
+    });
+  });
+}
+
+function wireDashboardShortcut() {
+  const btn = document.getElementById('btn-dash-load-samples');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const target = document.getElementById('btn-load-samples');
+    if (target) target.click();
+  });
+}
+
 function wireCompareFilter() {
   document.querySelectorAll('input[name="diff-filter"]').forEach((r) => {
     r.addEventListener('change', () => {
@@ -112,7 +148,9 @@ function renderActivePanel() {
   const wb = getWorkbook();
   const reviewedCodes = new Set(Object.keys(wb.reviewRegistry || {}));
   const panel = active.dataset.panel;
-  if (panel === 'current') {
+  if (panel === 'dashboard') {
+    renderDashboard();
+  } else if (panel === 'current') {
     renderTree(document.getElementById('current-tree'), wb.currentTree, {
       reviewedCodes,
       emptyText: 'No current hierarchy imported yet.'
