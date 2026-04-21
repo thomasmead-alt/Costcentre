@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cost Centre Hierarchy Tool</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>Cost Centre Hierarchy Tool</h1>
+    <div class="header-actions">
+      <span id="user-chip" class="user-chip" title="Click to set initials">--</span>
+      <button id="btn-export" type="button">Export JSON</button>
+      <label class="file-button">
+        Import JSON
+        <input type="file" id="file-import-workbook" accept="application/json" hidden />
+      </label>
+      <button id="btn-reset" type="button" class="danger">Reset</button>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="import" role="tab">Import</button>
+    <button class="tab" data-tab="current" role="tab">Current hierarchy</button>
+    <button class="tab" data-tab="proposed" role="tab">Proposed hierarchy</button>
+    <button class="tab" data-tab="compare" role="tab">Compare</button>
+    <button class="tab" data-tab="orphans" role="tab">Unassigned CCs</button>
+    <button class="tab" data-tab="changelog" role="tab">Change log</button>
+  </nav>
+
+  <main>
+    <section class="panel active" data-panel="import">
+      <h2>Import data</h2>
+
+      <div class="card">
+        <h3>KS13 extract (CSV)</h3>
+        <p class="hint">Upload a CSV with cost centre, profit centre and responsible person. The first row must be a header; column names are matched automatically but can be remapped below.</p>
+        <label class="file-button">
+          Choose KS13 CSV
+          <input type="file" id="file-ks13" accept=".csv,text/csv" hidden />
+        </label>
+        <div id="ks13-mapping" class="mapping" hidden></div>
+        <div id="ks13-summary" class="summary"></div>
+      </div>
+
+      <div class="card">
+        <h3>Current hierarchy</h3>
+        <p class="hint">Import a JSON file describing the existing management cost centre hierarchy.</p>
+        <label class="file-button">
+          Choose current hierarchy JSON
+          <input type="file" id="file-current" accept="application/json" hidden />
+        </label>
+        <div id="current-summary" class="summary"></div>
+      </div>
+
+      <div class="card">
+        <h3>Proposed hierarchy (draft)</h3>
+        <p class="hint">Import a proposal JSON to seed the editable proposed tree. You can refine it in the Proposed tab.</p>
+        <label class="file-button">
+          Choose proposed hierarchy JSON
+          <input type="file" id="file-proposed" accept="application/json" hidden />
+        </label>
+        <button id="btn-copy-current" type="button">Seed from current</button>
+        <div id="proposed-summary" class="summary"></div>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="current">
+      <h2>Current hierarchy</h2>
+      <p class="hint">Read-only view. Import a new current hierarchy from the Import tab to replace it.</p>
+      <div id="current-tree" class="tree"></div>
+    </section>
+
+    <section class="panel" data-panel="proposed">
+      <h2>Proposed hierarchy</h2>
+      <p class="hint">Click a node to add/rename/move/remove. New changes are logged automatically.</p>
+      <div class="toolbar">
+        <button id="btn-add-root-manager" type="button">Add top-level manager</button>
+      </div>
+      <div id="proposed-tree" class="tree editable"></div>
+    </section>
+
+    <section class="panel" data-panel="compare">
+      <h2>Compare current vs proposed</h2>
+      <div class="toolbar">
+        <label><input type="radio" name="diff-filter" value="all" checked /> All</label>
+        <label><input type="radio" name="diff-filter" value="nodes" /> Nodes only</label>
+        <label><input type="radio" name="diff-filter" value="ccs" /> Cost centres only</label>
+      </div>
+      <div class="diff-summary" id="diff-summary"></div>
+      <div class="diff-grid">
+        <div>
+          <h3>Current</h3>
+          <div id="compare-current" class="tree"></div>
+        </div>
+        <div>
+          <h3>Proposed</h3>
+          <div id="compare-proposed" class="tree"></div>
+        </div>
+      </div>
+      <h3>Changes</h3>
+      <div id="diff-list" class="diff-list"></div>
+    </section>
+
+    <section class="panel" data-panel="orphans">
+      <h2>Unassigned cost centres</h2>
+      <p class="hint">Cost centres from KS13 whose responsible person already sits in the proposed tree, but the CC has not been placed beneath them.</p>
+      <div id="orphan-list" class="orphan-list"></div>
+    </section>
+
+    <section class="panel" data-panel="changelog">
+      <h2>Change log</h2>
+      <div class="toolbar">
+        <label>Status
+          <select id="log-filter-status">
+            <option value="">All</option>
+            <option value="outstanding">Outstanding</option>
+            <option value="proposed">Proposed</option>
+            <option value="submitted">Submitted</option>
+            <option value="complete">Complete</option>
+            <option value="closed">Closed</option>
+          </select>
+        </label>
+        <label>Kind
+          <select id="log-filter-kind">
+            <option value="">All</option>
+            <option value="new-node">New node</option>
+            <option value="changed-node">Changed node</option>
+            <option value="removed-node">Removed node</option>
+            <option value="new-cc">New CC</option>
+            <option value="changed-cc">Changed CC</option>
+            <option value="removed-cc">Removed CC</option>
+            <option value="assigned-cc">Assigned CC</option>
+          </select>
+        </label>
+        <input type="search" id="log-filter-text" placeholder="Search CC / PC / person" />
+        <button id="btn-log-export" type="button">Export log CSV</button>
+      </div>
+      <table class="log-table" id="log-table">
+        <thead>
+          <tr>
+            <th>ID</th><th>Kind</th><th>Target</th><th>Status</th><th>Updated</th><th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <aside id="audit-drawer" class="audit-drawer" hidden>
+        <header>
+          <h3>Audit trail</h3>
+          <button id="btn-close-audit" type="button" aria-label="Close">&times;</button>
+        </header>
+        <div id="audit-body"></div>
+        <footer>
+          <textarea id="audit-note" placeholder="Add a note"></textarea>
+          <div class="audit-actions">
+            <button id="btn-audit-advance" type="button">Advance status</button>
+            <button id="btn-audit-reopen" type="button">Reopen</button>
+            <button id="btn-audit-note" type="button">Add note</button>
+          </div>
+        </footer>
+      </aside>
+    </section>
+  </main>
+
+  <div id="toast-root" class="toasts" aria-live="polite"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

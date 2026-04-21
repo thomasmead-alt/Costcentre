@@ -1,0 +1,12 @@
+Cost Centre,Cost Centre Name,Profit Centre,Profit Centre Name,Responsible Person,Person ID
+1001,Marketing UK,PC01,UK Operations,"Smith, J",U001
+1002,Marketing US,PC02,US Operations,"Jones, A",U002
+1003,Sales UK,PC01,UK Operations,"Smith, J",U001
+1004,Sales US,PC02,US Operations,"Jones, A",U002
+1005,Field Sales EMEA,PC01,UK Operations,"Smith, J",U001
+2001,Engineering Core,PC03,Technology,"Brown, K",U003
+2002,IT Support,PC03,Technology,"Brown, K",U003
+2003,Data Platform,PC03,Technology,"Patel, R",U005
+3001,HR,PC04,Corporate,"White, L",U004
+3002,Legal,PC04,Corporate,"White, L",U004
+3003,Facilities,PC04,Corporate,"White, L",U004

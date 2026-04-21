@@ -1,0 +1,66 @@
+{
+  "id": "root",
+  "type": "manager",
+  "label": "Organisation",
+  "children": [
+    {
+      "id": "m-cco",
+      "type": "manager",
+      "label": "CCO (Commercial)",
+      "children": [
+        {
+          "id": "p-smith",
+          "type": "person",
+          "label": "Smith, J",
+          "personId": "U001",
+          "children": [
+            { "id": "cc-1001", "type": "costcentre", "label": "Marketing UK", "costCentreCode": "1001", "profitCentre": "PC01", "children": [] },
+            { "id": "cc-1003", "type": "costcentre", "label": "Sales UK", "costCentreCode": "1003", "profitCentre": "PC01", "children": [] }
+          ]
+        },
+        {
+          "id": "p-jones",
+          "type": "person",
+          "label": "Jones, A (US lead)",
+          "personId": "U002",
+          "children": [
+            { "id": "cc-1002", "type": "costcentre", "label": "Marketing US", "costCentreCode": "1002", "profitCentre": "PC02", "children": [] },
+            { "id": "cc-1004", "type": "costcentre", "label": "Sales US", "costCentreCode": "1004", "profitCentre": "PC02", "children": [] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m-cto",
+      "type": "manager",
+      "label": "CTO",
+      "children": [
+        {
+          "id": "p-brown",
+          "type": "person",
+          "label": "Brown, K",
+          "personId": "U003",
+          "children": [
+            { "id": "cc-2001", "type": "costcentre", "label": "Engineering Core", "costCentreCode": "2001", "profitCentre": "PC03", "children": [] }
+          ]
+        },
+        {
+          "id": "p-patel",
+          "type": "person",
+          "label": "Patel, R",
+          "personId": "U005",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "p-white",
+      "type": "person",
+      "label": "White, L",
+      "personId": "U004",
+      "children": [
+        { "id": "cc-3001", "type": "costcentre", "label": "HR", "costCentreCode": "3001", "profitCentre": "PC04", "children": [] }
+      ]
+    }
+  ]
+}

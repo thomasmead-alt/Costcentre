@@ -1,0 +1,61 @@
+{
+  "id": "root",
+  "type": "manager",
+  "label": "Organisation",
+  "children": [
+    {
+      "id": "m-coo",
+      "type": "manager",
+      "label": "COO",
+      "children": [
+        {
+          "id": "p-smith",
+          "type": "person",
+          "label": "Smith, J",
+          "personId": "U001",
+          "children": [
+            { "id": "cc-1001", "type": "costcentre", "label": "Marketing UK", "costCentreCode": "1001", "profitCentre": "PC01", "children": [] },
+            { "id": "cc-1003", "type": "costcentre", "label": "Sales UK", "costCentreCode": "1003", "profitCentre": "PC01", "children": [] }
+          ]
+        },
+        {
+          "id": "p-jones",
+          "type": "person",
+          "label": "Jones, A",
+          "personId": "U002",
+          "children": [
+            { "id": "cc-1002", "type": "costcentre", "label": "Marketing US", "costCentreCode": "1002", "profitCentre": "PC02", "children": [] },
+            { "id": "cc-1004", "type": "costcentre", "label": "Sales US", "costCentreCode": "1004", "profitCentre": "PC02", "children": [] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m-cto",
+      "type": "manager",
+      "label": "CTO",
+      "children": [
+        {
+          "id": "p-brown",
+          "type": "person",
+          "label": "Brown, K",
+          "personId": "U003",
+          "children": [
+            { "id": "cc-2001", "type": "costcentre", "label": "Engineering Core", "costCentreCode": "2001", "profitCentre": "PC03", "children": [] },
+            { "id": "cc-2002", "type": "costcentre", "label": "IT Support", "costCentreCode": "2002", "profitCentre": "PC03", "children": [] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "p-white",
+      "type": "person",
+      "label": "White, L",
+      "personId": "U004",
+      "children": [
+        { "id": "cc-3001", "type": "costcentre", "label": "HR", "costCentreCode": "3001", "profitCentre": "PC04", "children": [] },
+        { "id": "cc-3002", "type": "costcentre", "label": "Legal", "costCentreCode": "3002", "profitCentre": "PC04", "children": [] }
+      ]
+    }
+  ]
+}
