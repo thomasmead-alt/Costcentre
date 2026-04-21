@@ -8,6 +8,36 @@ export function initImportPanel({ onChange }) {
   const currentInput = document.getElementById('file-current');
   const proposedInput = document.getElementById('file-proposed');
   const copyBtn = document.getElementById('btn-copy-current');
+  const sampleBtn = document.getElementById('btn-load-samples');
+
+  sampleBtn.addEventListener('click', async () => {
+    const wb = getWorkbook();
+    const hasData = (wb.ks13 && wb.ks13.length) || wb.currentTree || wb.proposedTree || (wb.changeLog && wb.changeLog.length);
+    if (hasData && !confirm('Replace current workbook data with the sample dataset?')) return;
+    try {
+      const [ks13Text, currentJson, proposedJson] = await Promise.all([
+        fetch('samples/ks13-sample.csv').then((r) => r.text()),
+        fetch('samples/current-hierarchy-sample.json').then((r) => r.json()),
+        fetch('samples/proposed-hierarchy-sample.json').then((r) => r.json())
+      ]);
+      const parsed = parseKS13(ks13Text);
+      const currentTree = deserialize(currentJson);
+      const proposedTree = deserialize(proposedJson);
+      updateWorkbook((w) => {
+        w.ks13 = parsed.rows;
+        w.ks13Headers = parsed.headers;
+        w.ks13Mapping = parsed.mapping;
+        w.currentTree = currentTree;
+        w.proposedTree = proposedTree;
+      });
+      refreshSummaries();
+      toast('Sample data loaded', 'ok');
+      onChange && onChange();
+    } catch (err) {
+      console.error(err);
+      toast(`Could not load samples: ${err.message}. Serve via http (e.g. python3 -m http.server).`, 'err');
+    }
+  });
 
   ks13Input.addEventListener('change', async (e) => {
     const file = e.target.files[0];
