@@ -1,4 +1,4 @@
-import { parseCSV } from './csv.js';
+import { parseCSV, toCSV } from './csv.js';
 import { createNode, addChild } from './hierarchy.js';
 
 const LEVEL_RE = /^(?:level|l|manager l|manager level|tier)\s*(\d+)$/i;
@@ -129,5 +129,5 @@ export function serializeHierarchyCsv(tree) {
     row.push(leaf.cc?.code || '', leaf.cc?.name || '', leaf.cc?.profitCentre || '');
     rows.push(row);
   }
-  return rows;
+  return toCSV(rows);
 }
