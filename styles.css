@@ -293,6 +293,7 @@ main { padding: 20px; }
   box-shadow: -4px 0 12px rgba(0,0,0,0.05);
   z-index: 20;
 }
+.audit-drawer[hidden] { display: none; }
 .audit-drawer header, .audit-drawer footer {
   padding: 12px 16px;
   border-bottom: 1px solid var(--border);
